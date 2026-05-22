@@ -4,46 +4,47 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
+import com.brahmadeo.supertonic.tts.utils.AssetManager
+import com.brahmadeo.supertonic.tts.utils.ModelVersion
 import java.io.File
 import java.util.ArrayList
 
 /**
  * Activity that handles the CHECK_TTS_DATA intent.
- * This is required by some apps (like Tasker) to verify that the TTS engine is functional
- * and to discover which languages are supported.
+ * Android system TTS settings (and apps like Tasker) call this to discover
+ * which locales the engine supports. Returns the union of voices across
+ * every installed model (v1 English, v3 31-lang), not just
+ * the user's currently selected language.
  */
 class CheckDataActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val prefs = getSharedPreferences("SupertonicPrefs", MODE_PRIVATE)
-        val savedLang = prefs.getString("selected_lang", "en") ?: "en"
-        val modelVersion = if (savedLang == "en") "v1" else "v2"
-
         val availableVoices = ArrayList<String>()
         val unavailableVoices = ArrayList<String>()
 
-        if (modelVersion == "v1") {
-            // English (v1) is bundled with the app and copied on first run
-            availableVoices.add("eng-USA")
-        } else {
-            // Check if multilingual models (v2) are present
-            val v2Dir = File(filesDir, "v2/onnx")
-            if (v2Dir.exists()) {
-                availableVoices.add("kor-KOR")
-                availableVoices.add("spa-ESP")
-                availableVoices.add("por-PRT")
-                availableVoices.add("fra-FRA")
-            } else {
-                // These could be downloaded via the app's UI
-                unavailableVoices.add("kor-KOR")
-                unavailableVoices.add("spa-ESP")
-                unavailableVoices.add("por-PRT")
-                unavailableVoices.add("fra-FRA")
-            }
+        fun voiceTag(langCode: String): String? {
+            val (iso3, country) = ModelVersion.LANG_ISO3[langCode] ?: return null
+            return "$iso3-$country"
         }
 
-        val result = if (modelVersion == "v1" || availableVoices.isNotEmpty()) {
+        fun addLangs(version: ModelVersion, target: ArrayList<String>) {
+            version.supportedLangs.forEach { lang -> voiceTag(lang)?.let { target.add(it) } }
+        }
+
+        val v1Installed = AssetManager.isV1Ready(this) && File(filesDir, "${ModelVersion.V1.dirName}/onnx").exists()
+        val v3Installed = AssetManager.isV3Ready(this) && File(filesDir, "${ModelVersion.V3.dirName}/onnx").exists()
+
+        // V3 supersedes V1 for all languages once installed. If only V1 is present, English is
+        // available and all V3 languages are listed as unavailable (prompts system to install).
+        if (v3Installed) {
+            addLangs(ModelVersion.V3, availableVoices)
+        } else {
+            if (v1Installed) addLangs(ModelVersion.V1, availableVoices) else addLangs(ModelVersion.V1, unavailableVoices)
+            addLangs(ModelVersion.V3, unavailableVoices)
+        }
+
+        val result = if (availableVoices.isNotEmpty()) {
             TextToSpeech.Engine.CHECK_VOICE_DATA_PASS
         } else {
             TextToSpeech.Engine.CHECK_VOICE_DATA_FAIL
@@ -52,7 +53,7 @@ class CheckDataActivity : Activity() {
         val returnIntent = Intent()
         returnIntent.putStringArrayListExtra(TextToSpeech.Engine.EXTRA_AVAILABLE_VOICES, availableVoices)
         returnIntent.putStringArrayListExtra(TextToSpeech.Engine.EXTRA_UNAVAILABLE_VOICES, unavailableVoices)
-        
+
         setResult(result, returnIntent)
         finish()
     }

@@ -76,9 +76,9 @@ fun MainScreen(
     onHistoryClick: () -> Unit,
     onQueueClick: () -> Unit,
     onLexiconClick: () -> Unit,
-    onDeleteV2Click: () -> Unit,
+    onDeleteV3Click: () -> Unit,
     onOpenEbookClick: () -> Unit,
-    isV2Ready: Boolean,
+    isV3Ready: Boolean,
 
     canResume: Boolean,
     onResumeClick: () -> Unit,
@@ -135,10 +135,10 @@ fun MainScreen(
                             onClick = { showMenu = false; onLexiconClick() },
                             enabled = currentLangCode != "ko"
                         )
-                        if (isV2Ready && currentLangCode == "en") {
+                        if (isV3Ready && currentLangCode == "en") {
                             DropdownMenuItem(
-                                text = { Text(stringResource(AppR.string.action_delete_v2), color = MaterialTheme.colorScheme.error) },
-                                onClick = { showMenu = false; onDeleteV2Click() }
+                                text = { Text(stringResource(AppR.string.action_delete_v3), color = MaterialTheme.colorScheme.error) },
+                                onClick = { showMenu = false; onDeleteV3Click() }
                             )
                         }
                     }
@@ -569,9 +569,9 @@ fun MainScreenPreview() {
             onHistoryClick = {},
             onQueueClick = {},
             onLexiconClick = {},
-            onDeleteV2Click = {},
+            onDeleteV3Click = {},
             onOpenEbookClick = {},
-            isV2Ready = true,
+            isV3Ready = false,
             canResume = true,
             onResumeClick = {},
             showMiniPlayer = true,

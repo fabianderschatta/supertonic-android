@@ -2,9 +2,12 @@ package com.brahmadeo.supertonic.tts.viewmodel
 
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import android.content.Context
+import com.brahmadeo.supertonic.tts.utils.AssetManager
 
 class MainViewModel : ViewModel() {
     // UI State
@@ -33,14 +36,25 @@ class MainViewModel : ViewModel() {
     var downloadingVersion = mutableStateOf("v1")
     var downloadProgress = mutableFloatStateOf(0f)
     var downloadStatus = mutableStateOf("Checking assets...")
+    var downloadedBytes = mutableLongStateOf(0L)
+    var totalBytes = mutableLongStateOf(0L)
     var downloadError = mutableStateOf<String?>(null)
 
     // Dialog State
     var showQueueDialog = mutableStateOf(false)
     var queueDialogText = ""
-    var showV2ConfirmDialog = mutableStateOf(false)
-    var showV2DeleteDialog = mutableStateOf(false)
+    var showV3ConfirmDialog = mutableStateOf(false)
+    var showV3DeleteDialog = mutableStateOf(false)
     var pendingLangCode = ""
+
+    // Asset readiness (cached, recomputed via refreshReadiness so Compose doesn't stat files on every recomposition)
+    var isV1Ready = mutableStateOf(false)
+    var isV3Ready = mutableStateOf(false)
+
+    fun refreshReadiness(context: Context) {
+        isV1Ready.value = AssetManager.isV1Ready(context)
+        isV3Ready.value = AssetManager.isV3Ready(context)
+    }
 
     // Data
     val voiceFiles = mutableStateMapOf<String, String>()
